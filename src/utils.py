@@ -87,4 +87,7 @@ def set_config(args, game):
     config["algo"]["delta_clip"] = args.delta_clip
     config["algo"]["prioritized_replay"] = args.prioritized_replay
 
+    # New arguements for testing different self-supervised losses with/without dynamics model
+    config["model"]['spr_loss_type'] = args.spr_loss_type
+
     return config

@@ -23,6 +23,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+src/rlpyt
 MANIFEST
 
 # PyInstaller
@@ -110,3 +111,5 @@ tmp/
 wandb
 philly/
 results/
+outputs/
+saved_runs/

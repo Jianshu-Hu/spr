@@ -70,9 +70,14 @@ def maybe_update_summary(key, value):
 
 class MinibatchRlEvalWandb(MinibatchRlEval):
 
-    def __init__(self, final_eval_only=False, *args, **kwargs):
+    def __init__(self, final_eval_only=False, eval_freq=1000, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.final_eval_only = final_eval_only
+        self.eval_freq = eval_freq
+
+        # the index for saving scores
+        self.index = 0
+        self.score = None
 
     def log_diagnostics(self, itr, eval_traj_infos, eval_time):
         cum_steps = (itr + 1) * self.sampler.batch_size * self.world_size
@@ -170,6 +175,19 @@ class MinibatchRlEvalWandb(MinibatchRlEval):
                         maybe_update_summary(k+"DERNormalizedBest", der_normalized_score)
                         maybe_update_summary(k+"NatureNormalizedBest", nature_normalized_score)
 
+                        # save normalized score
+                        if self.index == 0:
+                            self.score = np.array([self.index*self.eval_freq*2,  normalized_score,
+                                                   der_normalized_score, nature_normalized_score]).reshape(1, 4)
+                        else:
+                            new_score = np.array([self.index*self.eval_freq*2, normalized_score,
+                                                  der_normalized_score, nature_normalized_score]).reshape(1, 4)
+                            self.score = np.vstack((self.score, new_score))
+                        self.index += 1
+                        header = "iter, human_normalized_score, der_normalized_score, nature_normalized_score"
+                        # print(wandb.run.dir)
+                        np.savetxt(wandb.run.dir+"/score.csv", self.score, delimiter=",", header=header)
+
         if self._opt_infos:
             for k, v in self._opt_infos.items():
                 logger.record_tabular_misc_stat(k, v)
@@ -187,7 +205,7 @@ class MinibatchRlEvalWandb(MinibatchRlEval):
         if self.final_eval_only:
             eval = itr == 0 or itr >= self.n_itr - 1
         else:
-            eval = itr == 0 or itr >= self.min_itr_learn - 1
+            eval = itr == 0 or ((itr - self.min_itr_learn + 1) % self.eval_freq == 0)
         if eval:
             logger.log("Evaluating agent...")
             self.agent.eval_mode(itr)  # Might be agent in sampler.

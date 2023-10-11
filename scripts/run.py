@@ -57,6 +57,7 @@ def build_and_train(game="pong", run_ID=0, cuda_idx=0, args=None):
         log_interval_steps=args.n_steps//args.num_logs,
         seed=args.seed,
         final_eval_only=args.final_eval_only,
+        eval_freq=args.eval_freq
     )
     config = dict(game=game)
     name = "dqn_" + game
@@ -125,19 +126,25 @@ if __name__ == "__main__":
     parser.add_argument('--min-steps-learn', type=int, default=2000)
     parser.add_argument('--eps-init', type=float, default=1.)
     parser.add_argument('--eps-final', type=float, default=0.)
-    parser.add_argument('--final-eval-only', type=int, default=1)
+    parser.add_argument('--final-eval-only', type=int, default=0)
     parser.add_argument('--time-offset', type=int, default=0)
-    parser.add_argument('--project', type=str, default="mpr")
+    parser.add_argument('--project', type=str, default="DRL")
     parser.add_argument('--entity', type=str, default="abs-world-models")
     parser.add_argument('--cuda_idx', help='gpu to use ', type=int, default=0)
     parser.add_argument('--max-grad-norm', type=float, default=10., help='Max Grad Norm')
     parser.add_argument('--public', action='store_true', help='If set, uses anonymous wandb logging')
+
+    parser.add_argument('--spr_loss_type', type=str, default="BYOL", choices=["BYOL", "CURL", "CURL_norm"],
+                        help='the type of self-supervised loss')
+    parser.add_argument('--eval_freq', type=int, default=5000, help='the frequency of evaluating the agent')
     args = parser.parse_args()
 
     if args.public:
         wandb.init(anonymous="allow", config=args, tags=[args.tag] if args.tag else None, dir=args.wandb_dir)
     else:
-        wandb.init(project=args.project, entity=args.entity, config=args, tags=[args.tag] if args.tag else None, dir=args.wandb_dir)
+        # wandb.init(project=args.project, entity=args.entity, config=args, tags=[args.tag] if args.tag else None, dir=args.wandb_dir)
+        wandb.init(project=args.project, config=args, tags=[args.tag] if args.tag else None,
+                   dir=args.wandb_dir)
     wandb.config.update(vars(args))
     build_and_train(game=args.game,
                     cuda_idx=args.cuda_idx,

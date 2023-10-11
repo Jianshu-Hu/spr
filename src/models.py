@@ -51,12 +51,13 @@ class SPRCatDqnModel(torch.nn.Module):
             model_rl,
             noisy_nets_std,
             residual_tm,
+            spr_loss_type,
             use_maxpool=False,
             channels=None,  # None uses default.
             kernel_sizes=None,
             strides=None,
             paddings=None,
-            framestack=4,
+            framestack=4
     ):
         """Instantiates the neural network according to arguments; network defaults
         stored within this method."""
@@ -173,6 +174,12 @@ class SPRCatDqnModel(torch.nn.Module):
             self.shared_encoder = shared_encoder
             assert not (self.shared_encoder and self.momentum_encoder)
 
+            self.spr_loss_type = spr_loss_type
+            self.cross_entropy_loss = nn.CrossEntropyLoss()
+            self.logsoftmax = nn.LogSoftmax(dim=-1)
+            self.nll_loss = nn.NLLLoss(reduction='none')
+            self.W = nn.Parameter(torch.rand(512, 512))
+
             # in case someone tries something silly like --local-spr 2
             self.num_sprs = int(bool(self.local_spr)) + \
                             int(bool(self.global_spr))
@@ -284,12 +291,41 @@ class SPRCatDqnModel(torch.nn.Module):
         if self.noisy:
             self.head.set_sampling(sampling)
 
+    def compute_logits(self, z_a, z_pos):
+        """
+        from CURL implementation: https://github.com/MishaLaskin/curl/blob/master/curl_sac.py
+        Uses logits trick for CURL:
+        - compute (B,B) matrix z_a (W z_pos.T)
+        - positives are all diagonal elements
+        - negatives are all other elements
+        - to compute loss use multiclass cross entropy with identity matrix for labels
+        """
+        Wz = torch.matmul(self.W, z_pos.T)  # (z_dim,B)
+        logits = torch.matmul(z_a, Wz)  # (B,B)
+        logits = logits - torch.max(logits, 1)[0][:, None]
+        return logits
+
     def spr_loss(self, f_x1s, f_x2s):
-        f_x1 = F.normalize(f_x1s.float(), p=2., dim=-1, eps=1e-3)
-        f_x2 = F.normalize(f_x2s.float(), p=2., dim=-1, eps=1e-3)
-        # Gradients of norrmalized L2 loss and cosine similiarity are proportional.
-        # See: https://stats.stackexchange.com/a/146279
-        loss = F.mse_loss(f_x1, f_x2, reduction="none").sum(-1).mean(0)
+        if self.spr_loss_type == 'BYOL':
+            f_x1 = F.normalize(f_x1s.float(), p=2., dim=-1, eps=1e-3)
+            f_x2 = F.normalize(f_x2s.float(), p=2., dim=-1, eps=1e-3)
+            # Gradients of norrmalized L2 loss and cosine similiarity are proportional.
+            # See: https://stats.stackexchange.com/a/146279
+            loss = F.mse_loss(f_x1, f_x2, reduction="none").sum(-1).mean(0)
+        elif self.spr_loss_type == 'CURL' or self.spr_loss_type == 'CURL_norm':
+            # f_x1s, f_x2s [1, 1+jumps, batch, latent size]
+            if self.spr_loss_type == 'CURL_norm':
+                f_x1s = F.normalize(f_x1s.float(), p=2., dim=-1, eps=1e-3)
+                f_x2s = F.normalize(f_x2s.float(), p=2., dim=-1, eps=1e-3)
+            loss = torch.zeros(f_x1s.size(1), f_x1s.size(2)).to(f_x1s.device)
+            for i in range(f_x1s.size(1)):
+                logits = self.compute_logits(f_x1s[0, i, :, :], f_x2s[0, i, :, :])
+                labels = torch.arange(logits.shape[0]).long().to(f_x1s.device)
+                logsoftmax = self.logsoftmax(logits)
+                loss[i, :] = self.nll_loss(logsoftmax, labels)
+                # test_loss = self.cross_entropy_loss(logits, labels)
+                # print(test_loss)
+            print(self.W[0, 0])
         return loss
 
     def global_spr_loss(self, latents, target_latents, observation):
