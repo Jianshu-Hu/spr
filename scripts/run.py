@@ -137,6 +137,9 @@ if __name__ == "__main__":
     parser.add_argument('--spr_loss_type', type=str, default="BYOL", choices=["BYOL", "CURL", "CURL_norm"],
                         help='the type of self-supervised loss')
     parser.add_argument('--eval_freq', type=int, default=5000, help='the frequency of evaluating the agent')
+
+    # action repeat
+    parser.add_argument('--repeat_type', type=int, default=0, help='using different method for deciding action repeat ')
     args = parser.parse_args()
 
     if args.public:

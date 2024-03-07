@@ -2,6 +2,7 @@ import torch
 from rlpyt.agents.dqn.atari.atari_catdqn_agent import AtariCatDqnAgent
 from rlpyt.utils.buffer import buffer_to
 from rlpyt.utils.collections import namedarraytuple
+import numpy as np
 AgentInputs = namedarraytuple("AgentInputs",
     ["observation", "prev_action", "prev_reward"])
 AgentInfo = namedarraytuple("AgentInfo", "p")
@@ -11,10 +12,11 @@ AgentStep = namedarraytuple("AgentStep", ["action", "agent_info"])
 class SPRAgent(AtariCatDqnAgent):
     """Agent for Categorical DQN algorithm with search."""
 
-    def __init__(self, eval=False, **kwargs):
+    def __init__(self, repeat_type, eval=False, **kwargs):
         """Standard init, and set the number of probability atoms (bins)."""
         super().__init__(**kwargs)
         self.eval = eval
+        self.repeat_type = repeat_type
 
     def __call__(self, observation, prev_action, prev_reward, train=False):
         """Returns Q-values for states/observations (with grad)."""
@@ -35,7 +37,7 @@ class SPRAgent(AtariCatDqnAgent):
                    env_ranks=None):
         super().initialize(env_spaces, share_memory, global_B, env_ranks)
         # Overwrite distribution.
-        self.search = SPRActionSelection(self.model, self.distribution)
+        self.search = SPRActionSelection(self.model, self.distribution, self.repeat_type)
 
     def to_device(self, cuda_idx=None):
         """Moves the model to the specified cuda device, if not ``None``.  If
@@ -74,7 +76,7 @@ class SPRAgent(AtariCatDqnAgent):
     def step(self, observation, prev_action, prev_reward):
         """Compute the discrete distribution for the Q-value for each
         action for each state/observation (no grad)."""
-        action, p = self.search.run(observation.to(self.search.device))
+        action, p = self.search.run(observation.to(self.search.device), prev_action, self._mode)
         p = p.cpu()
         action = action.cpu()
 
@@ -84,18 +86,21 @@ class SPRAgent(AtariCatDqnAgent):
 
 
 class SPRActionSelection(torch.nn.Module):
-    def __init__(self, network, distribution, device="cpu"):
+    def __init__(self, network, distribution, repeat_type, device="cpu"):
         super().__init__()
         self.network = network
         self.epsilon = distribution._epsilon
         self.device = device
         self.first_call = True
 
+        self.repeat_type = repeat_type
+        self.repeat_prob_record = []
+
     def to_device(self, idx):
         self.device = idx
 
     @torch.no_grad()
-    def run(self, obs):
+    def run(self, obs, prev_action, mode):
         while len(obs.shape) <= 4:
             obs.unsqueeze_(0)
         obs = obs.to(self.device).float() / 255.
@@ -106,6 +111,17 @@ class SPRActionSelection(torch.nn.Module):
         if self.first_call:
             action = action.squeeze()
             self.first_call = False
+        if mode == 'sample' and self.repeat_type == 1 and self.epsilon < 1:
+            # repeat for unvisited state
+            with torch.no_grad():
+                feature = self.network.forward_feature(obs)
+                repeat_prob = self.network.hash_count.predict(feature.cpu().numpy())
+                self.repeat_prob_record.append(repeat_prob)
+                # if np.random.uniform() < repeat_prob:
+                #     action = prev_action
+            if len(self.repeat_prob_record) % 1000 == 0:
+                np.savez('/bd_targaryen/users/jhu/spr/wandb/repeat_prob.npz',
+                         repeat_prob=np.array(self.repeat_prob_record))
         return action, value.squeeze()
 
     def select_action(self, value):

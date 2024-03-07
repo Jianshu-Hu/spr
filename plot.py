@@ -53,11 +53,6 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
 
 
 prefix = 'pong/'
-folders_1 = ['spr', 'spr_jumps_0', 'spr_curl', 'spr_curl_jumps_0', 'spr_curl_normalized', 'spr_curl_normalized_jumps_0']
+folders_1 = ['spr_jumps_0', 'rainbow']
 # label_list = ['drqv2', 'ours']
 plot_several_folders(prefix, folders_1, title='pong')
-
-prefix = 'alien/'
-folders_1 = ['spr', 'spr_curl_normalized']
-# label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='alien')

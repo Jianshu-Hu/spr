@@ -38,6 +38,7 @@ class SPRCategoricalDQN(CategoricalDQN):
                  time_offset=0,
                  distributional=1,
                  jumps=0,
+                 repeat_type=0,
                  **kwargs):
         super().__init__(**kwargs)
         self.opt_info_fields = tuple(f for f in ModelOptInfo._fields)  # copy
@@ -53,6 +54,8 @@ class SPRCategoricalDQN(CategoricalDQN):
             self.rl_loss = self.dqn_rl_loss
         else:
             self.rl_loss = self.dist_rl_loss
+
+        self.repeat_type = repeat_type
 
     def initialize_replay_buffer(self, examples, batch_spec, async_=False):
         example_to_buffer = ModelSamplesToBuffer(
@@ -126,8 +129,16 @@ class SPRCategoricalDQN(CategoricalDQN):
         opt_info = ModelOptInfo(*([] for _ in range(len(ModelOptInfo._fields))))
         if itr < self.min_itr_learn:
             return opt_info
+
         for _ in range(self.updates_per_optimize):
             samples_from_replay = self.replay_buffer.sample_batch(self.batch_size)
+            if self.repeat_type == 1:
+                # update the counting table
+                with torch.no_grad():
+                    feature = self.model.forward_feature(
+                        samples_from_replay.all_observation.to(self.agent.device), train=True)
+                    self.model.hash_count.fit_before_process_samples(feature.cpu().numpy())
+
             loss, td_abs_errors, model_rl_loss, reward_loss,\
             t0_spr_loss, model_spr_loss = self.loss(samples_from_replay)
             spr_loss = self.t0_spr_loss_weight*t0_spr_loss + self.model_spr_weight*model_spr_loss
