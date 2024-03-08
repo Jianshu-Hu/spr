@@ -45,7 +45,7 @@ def build_and_train(game="pong", run_ID=0, cuda_idx=0, args=None):
     )
     args.discount = config["algo"]["discount"]
     algo = SPRCategoricalDQN(optim_kwargs=config["optim"], jumps=args.jumps, **config["algo"])  # Run with defaults.
-    agent = SPRAgent(ModelCls=SPRCatDqnModel, model_kwargs=config["model"], **config["agent"])
+    agent = SPRAgent(log_dir=wandb.run.dir, ModelCls=SPRCatDqnModel, model_kwargs=config["model"], **config["agent"])
 
     wandb.config.update(config)
     runner = MinibatchRlEvalWandb(
@@ -57,7 +57,6 @@ def build_and_train(game="pong", run_ID=0, cuda_idx=0, args=None):
         log_interval_steps=args.n_steps//args.num_logs,
         seed=args.seed,
         final_eval_only=args.final_eval_only,
-        eval_freq=args.eval_freq
     )
     config = dict(game=game)
     name = "dqn_" + game
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch-t', type=int, default=1)
     parser.add_argument('--beluga', action="store_true")
     parser.add_argument('--jumps', type=int, default=5)
-    parser.add_argument('--num-logs', type=int, default=10)
+    parser.add_argument('--num-logs', type=int, default=20)
     parser.add_argument('--renormalize', type=int, default=1)
     parser.add_argument('--dueling', type=int, default=1)
     parser.add_argument('--replay-ratio', type=int, default=64)
@@ -136,10 +135,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--spr_loss_type', type=str, default="BYOL", choices=["BYOL", "CURL", "CURL_norm"],
                         help='the type of self-supervised loss')
-    parser.add_argument('--eval_freq', type=int, default=5000, help='the frequency of evaluating the agent')
 
     # action repeat
-    parser.add_argument('--repeat_type', type=int, default=0, help='using different method for deciding action repeat ')
+    parser.add_argument('--repeat_type', type=int, default=0, help='using different method for deciding action repeat')
+    parser.add_argument('--repeat_coefficient', type=float, default=1.0,
+                        help='the coefficient for calculating the probability for action repeat')
     args = parser.parse_args()
 
     if args.public:

@@ -11,7 +11,7 @@ def average_over_several_runs(folder):
     for i in range(len(runs)):
         data = np.loadtxt(folder+'/'+runs[i]+'/files/score.csv', delimiter=',', skiprows=1)
         # evaluation_freq = data[2, -3]-data[1, -3]
-        evaluation_freq = 10000
+        evaluation_freq = data[2, 0]-data[1, 0]
         data_all.append(data[:, -3])
         if data.shape[0] < min_length:
             min_length = data.shape[0]
@@ -53,6 +53,16 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
 
 
 prefix = 'pong/'
-folders_1 = ['spr_jumps_0', 'rainbow']
+folders_1 = ['rainbow', 'rainbow_simhash_repeat']
 # label_list = ['drqv2', 'ours']
 plot_several_folders(prefix, folders_1, title='pong')
+
+prefix = 'alien/'
+folders_1 = ['rainbow', 'rainbow_simhash_repeat']
+# label_list = ['drqv2', 'ours']
+plot_several_folders(prefix, folders_1, title='alien')
+
+prefix = 'battlezone/'
+folders_1 = ['rainbow', 'rainbow_simhash_repeat']
+# label_list = ['drqv2', 'ours']
+plot_several_folders(prefix, folders_1, title='battlezone')

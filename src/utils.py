@@ -92,6 +92,7 @@ def set_config(args, game):
 
     # New arguments for action repeat
     config["model"]['repeat_type'] = args.repeat_type
+    config["model"]['repeat_coefficient'] = args.repeat_coefficient
     config["algo"]['repeat_type'] = args.repeat_type
     config["agent"]['repeat_type'] = args.repeat_type
 

@@ -53,6 +53,7 @@ class SPRCatDqnModel(torch.nn.Module):
             residual_tm,
             spr_loss_type,
             repeat_type,
+            repeat_coefficient,
             use_maxpool=False,
             channels=None,  # None uses default.
             kernel_sizes=None,
@@ -287,9 +288,11 @@ class SPRCatDqnModel(torch.nn.Module):
                 self.target_encoder = self.conv
         # action repeat
         self.repeat_type = repeat_type
+        self.repeat_coefficient = repeat_coefficient
         if self.repeat_type == 1:
             # use SimHash for pseudo-count
-            self.hash_count = HashingBonusEvaluator(dim_key=128, obs_processed_flat_dim=self.hidden_size*self.pixels)
+            self.hash_count = HashingBonusEvaluator(dim_key=128, obs_processed_flat_dim=self.hidden_size*self.pixels,
+                                                    repeat_coefficient=repeat_coefficient)
 
         print("Initialized model with {} parameters".format(count_parameters(self)))
 
@@ -1056,7 +1059,7 @@ class HashingBonusEvaluator(object):
     In Advances in Neural Information Processing Systems (NIPS)
     """
 
-    def __init__(self, dim_key=128, obs_processed_flat_dim=None, bucket_sizes=None):
+    def __init__(self, dim_key=128, obs_processed_flat_dim=None, bucket_sizes=None, repeat_coefficient=1.0):
         # Hashing function: SimHash
         if bucket_sizes is None:
             # Large prime numbers
@@ -1073,6 +1076,8 @@ class HashingBonusEvaluator(object):
         self.mods_list = np.asarray(mods_list).T
         self.tables = np.zeros((len(bucket_sizes), np.max(bucket_sizes)))
         self.projection_matrix = np.random.normal(size=(obs_processed_flat_dim, dim_key))
+
+        self.repeat_coefficient = repeat_coefficient
 
     def compute_keys(self, obss):
         binaries = np.sign(np.asarray(obss).dot(self.projection_matrix))
@@ -1101,4 +1106,4 @@ class HashingBonusEvaluator(object):
 
     def predict(self, obs):
         counts = self.query_hash(obs)
-        return 1. / np.maximum(1., np.sqrt(counts))
+        return self.repeat_coefficient / np.maximum(1., np.sqrt(counts))

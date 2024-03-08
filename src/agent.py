@@ -12,11 +12,12 @@ AgentStep = namedarraytuple("AgentStep", ["action", "agent_info"])
 class SPRAgent(AtariCatDqnAgent):
     """Agent for Categorical DQN algorithm with search."""
 
-    def __init__(self, repeat_type, eval=False, **kwargs):
+    def __init__(self, log_dir, repeat_type, eval=False, **kwargs):
         """Standard init, and set the number of probability atoms (bins)."""
         super().__init__(**kwargs)
         self.eval = eval
         self.repeat_type = repeat_type
+        self.log_dir = log_dir
 
     def __call__(self, observation, prev_action, prev_reward, train=False):
         """Returns Q-values for states/observations (with grad)."""
@@ -37,7 +38,7 @@ class SPRAgent(AtariCatDqnAgent):
                    env_ranks=None):
         super().initialize(env_spaces, share_memory, global_B, env_ranks)
         # Overwrite distribution.
-        self.search = SPRActionSelection(self.model, self.distribution, self.repeat_type)
+        self.search = SPRActionSelection(self.model, self.distribution, self.repeat_type, self.log_dir)
 
     def to_device(self, cuda_idx=None):
         """Moves the model to the specified cuda device, if not ``None``.  If
@@ -86,7 +87,7 @@ class SPRAgent(AtariCatDqnAgent):
 
 
 class SPRActionSelection(torch.nn.Module):
-    def __init__(self, network, distribution, repeat_type, device="cpu"):
+    def __init__(self, network, distribution, repeat_type, log_dir, device="cpu"):
         super().__init__()
         self.network = network
         self.epsilon = distribution._epsilon
@@ -95,6 +96,7 @@ class SPRActionSelection(torch.nn.Module):
 
         self.repeat_type = repeat_type
         self.repeat_prob_record = []
+        self.log_dir = log_dir
 
     def to_device(self, idx):
         self.device = idx
@@ -120,8 +122,7 @@ class SPRActionSelection(torch.nn.Module):
                 # if np.random.uniform() < repeat_prob:
                 #     action = prev_action
             if len(self.repeat_prob_record) % 1000 == 0:
-                np.savez('/bd_targaryen/users/jhu/spr/wandb/repeat_prob.npz',
-                         repeat_prob=np.array(self.repeat_prob_record))
+                np.savez(self.log_dir+'/repeat_prob.npz', repeat_prob=np.array(self.repeat_prob_record))
         return action, value.squeeze()
 
     def select_action(self, value):

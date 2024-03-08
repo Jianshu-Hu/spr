@@ -70,10 +70,9 @@ def maybe_update_summary(key, value):
 
 class MinibatchRlEvalWandb(MinibatchRlEval):
 
-    def __init__(self, final_eval_only=False, eval_freq=1000, *args, **kwargs):
+    def __init__(self, final_eval_only=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.final_eval_only = final_eval_only
-        self.eval_freq = eval_freq
 
         # the index for saving scores
         self.index = 0
@@ -177,10 +176,10 @@ class MinibatchRlEvalWandb(MinibatchRlEval):
 
                         # save normalized score
                         if self.index == 0:
-                            self.score = np.array([self.index*self.eval_freq*2,  normalized_score,
+                            self.score = np.array([self.index*self.log_interval_steps,  normalized_score,
                                                    der_normalized_score, nature_normalized_score]).reshape(1, 4)
                         else:
-                            new_score = np.array([self.index*self.eval_freq*2, normalized_score,
+                            new_score = np.array([self.index*self.log_interval_steps, normalized_score,
                                                   der_normalized_score, nature_normalized_score]).reshape(1, 4)
                             self.score = np.vstack((self.score, new_score))
                         self.index += 1
@@ -205,7 +204,7 @@ class MinibatchRlEvalWandb(MinibatchRlEval):
         if self.final_eval_only:
             eval = itr == 0 or itr >= self.n_itr - 1
         else:
-            eval = itr == 0 or ((itr - self.min_itr_learn + 1) % self.eval_freq == 0)
+            eval = itr == 0 or itr >= self.min_itr_learn - 1
         if eval:
             logger.log("Evaluating agent...")
             self.agent.eval_mode(itr)  # Might be agent in sampler.
