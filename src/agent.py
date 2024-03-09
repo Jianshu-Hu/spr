@@ -119,8 +119,8 @@ class SPRActionSelection(torch.nn.Module):
                 feature = self.network.forward_feature(obs)
                 repeat_prob = self.network.hash_count.predict(feature.cpu().numpy())
                 self.repeat_prob_record.append(repeat_prob)
-                # if np.random.uniform() < repeat_prob:
-                #     action = prev_action
+                if np.random.uniform() < repeat_prob:
+                    action = prev_action
             if len(self.repeat_prob_record) % 1000 == 0:
                 np.savez(self.log_dir+'/repeat_prob.npz', repeat_prob=np.array(self.repeat_prob_record))
         return action, value.squeeze()

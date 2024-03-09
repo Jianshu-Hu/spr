@@ -291,8 +291,8 @@ class SPRCatDqnModel(torch.nn.Module):
         self.repeat_coefficient = repeat_coefficient
         if self.repeat_type == 1:
             # use SimHash for pseudo-count
-            self.hash_count = HashingBonusEvaluator(dim_key=128, obs_processed_flat_dim=self.hidden_size*self.pixels,
-                                                    repeat_coefficient=repeat_coefficient)
+            self.hash_count = HashingBonusEvaluator(repeat_coefficient,
+                                                    dim_key=128, obs_processed_flat_dim=self.hidden_size*self.pixels)
 
         print("Initialized model with {} parameters".format(count_parameters(self)))
 
@@ -1059,7 +1059,7 @@ class HashingBonusEvaluator(object):
     In Advances in Neural Information Processing Systems (NIPS)
     """
 
-    def __init__(self, dim_key=128, obs_processed_flat_dim=None, bucket_sizes=None, repeat_coefficient=1.0):
+    def __init__(self, repeat_coefficient, dim_key=128, obs_processed_flat_dim=None, bucket_sizes=None):
         # Hashing function: SimHash
         if bucket_sizes is None:
             # Large prime numbers

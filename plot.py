@@ -53,16 +53,26 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
 
 
 prefix = 'pong/'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat']
+folders_1 = ['rainbow', 'rainbow_simhash_repeat', 'rainbow_simhash_repeat_c03']
 # label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='pong')
+plot_several_folders(prefix, folders_1, title='pong_simhash')
 
 prefix = 'alien/'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat']
+folders_1 = ['rainbow', 'rainbow_simhash_repeat', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c03']
 # label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='alien')
+plot_several_folders(prefix, folders_1, title='alien_simhash')
 
 prefix = 'battlezone/'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat']
+folders_1 = ['rainbow', 'rainbow_simhash_repeat', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c03']
 # label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='battlezone')
+plot_several_folders(prefix, folders_1, title='battlezone_simhash')
+
+prefix = 'pong/'
+folders_1 = ['rainbow', 'rainbow_epsilon_end']
+# label_list = ['drqv2', 'ours']
+plot_several_folders(prefix, folders_1, title='pong_epsilon')
+
+prefix = 'alien/'
+folders_1 = ['rainbow', 'rainbow_epsilon_end']
+# label_list = ['drqv2', 'ours']
+plot_several_folders(prefix, folders_1, title='alien_epsilon')
