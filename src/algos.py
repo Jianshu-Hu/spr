@@ -132,7 +132,7 @@ class SPRCategoricalDQN(CategoricalDQN):
 
         for _ in range(self.updates_per_optimize):
             samples_from_replay = self.replay_buffer.sample_batch(self.batch_size)
-            if self.repeat_type == 1:
+            if self.repeat_type == 1 or self.repeat_type == 2:
                 # update the counting table
                 with torch.no_grad():
                     feature = self.model.forward_feature(

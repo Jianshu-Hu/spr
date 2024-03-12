@@ -177,10 +177,12 @@ class MinibatchRlEvalWandb(MinibatchRlEval):
                         # save normalized score
                         if self.index == 0:
                             self.score = np.array([self.index*self.log_interval_steps,  normalized_score,
-                                                   der_normalized_score, nature_normalized_score]).reshape(1, 4)
+                                                   der_normalized_score, nature_normalized_score,
+                                                   np.average(values)]).reshape(1, 5)
                         else:
                             new_score = np.array([self.index*self.log_interval_steps, normalized_score,
-                                                  der_normalized_score, nature_normalized_score]).reshape(1, 4)
+                                                  der_normalized_score, nature_normalized_score,
+                                                  np.average(values)]).reshape(1, 5)
                             self.score = np.vstack((self.score, new_score))
                         self.index += 1
                         header = "iter, human_normalized_score, der_normalized_score, nature_normalized_score"

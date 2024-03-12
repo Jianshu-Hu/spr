@@ -3,8 +3,52 @@ import numpy as np
 import math
 import os
 
+atari_human_scores = dict(
+    alien=7127.7, amidar=1719.5, assault=742.0, asterix=8503.3,
+    bank_heist=753.1, battle_zone=37187.5, boxing=12.1,
+    breakout=30.5, chopper_command=7387.8, crazy_climber=35829.4,
+    demon_attack=1971.0, freeway=29.6, frostbite=4334.7,
+    gopher=2412.5, hero=30826.4, jamesbond=302.8, kangaroo=3035.0,
+    krull=2665.5, kung_fu_master=22736.3, ms_pacman=6951.6, pong=14.6,
+    private_eye=69571.3, qbert=13455.0, road_runner=7845.0,
+    seaquest=42054.7, up_n_down=11693.2
+)
 
-def average_over_several_runs(folder):
+atari_der_scores = dict(
+    alien=739.9, amidar=188.6, assault=431.2, asterix=470.8,
+    bank_heist=51.0, battle_zone=10124.6, boxing=0.2,
+    breakout=1.9, chopper_command=861.8, crazy_climber=16185.3,
+    demon_attack=508, freeway=27.9, frostbite=866.8,
+    gopher=349.5, hero=6857.0, jamesbond=301.6,
+    kangaroo=779.3, krull=2851.5, kung_fu_master=14346.1,
+    ms_pacman=1204.1, pong=-19.3, private_eye=97.8, qbert=1152.9,
+    road_runner=9600.0, seaquest=354.1, up_n_down=2877.4,
+)
+
+atari_nature_scores = dict(
+    alien=3069, amidar=739.5, assault=3359,
+    asterix=6012, bank_heist=429.7, battle_zone=26300.,
+    boxing=71.8, breakout=401.2, chopper_command=6687.,
+    crazy_climber=114103, demon_attack=9711., freeway=30.3,
+    frostbite=328.3, gopher=8520., hero=19950., jamesbond=576.7,
+    kangaroo=6740., krull=3805., kung_fu_master=23270.,
+    ms_pacman=2311., pong=18.9, private_eye=1788.,
+    qbert=10596., road_runner=18257., seaquest=5286., up_n_down=8456.
+)
+
+atari_random_scores = dict(
+    alien=227.8, amidar=5.8, assault=222.4,
+    asterix=210.0, bank_heist=14.2, battle_zone=2360.0,
+    boxing=0.1, breakout=1.7, chopper_command=811.0,
+    crazy_climber=10780.5, demon_attack=152.1, freeway=0.0,
+    frostbite=65.2, gopher=257.6, hero=1027.0, jamesbond=29.0,
+    kangaroo=52.0, krull=1598.0, kung_fu_master=258.5,
+    ms_pacman=307.3, pong=-20.7, private_eye=24.9,
+    qbert=163.9, road_runner=11.5, seaquest=68.4, up_n_down=533.4
+)
+
+
+def average_over_several_runs(folder, game):
     data_all = []
     min_length = np.inf
     runs = os.listdir(folder)
@@ -12,7 +56,7 @@ def average_over_several_runs(folder):
         data = np.loadtxt(folder+'/'+runs[i]+'/files/score.csv', delimiter=',', skiprows=1)
         # evaluation_freq = data[2, -3]-data[1, -3]
         evaluation_freq = data[2, 0]-data[1, 0]
-        data_all.append(data[:, -3])
+        data_all.append(data[:, 1]*(atari_human_scores[game]-atari_random_scores[game])+atari_random_scores[game])
         if data.shape[0] < min_length:
             min_length = data.shape[0]
     average = np.zeros([len(runs), min_length])
@@ -28,9 +72,9 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
     plt.rcParams["figure.figsize"] = (5, 4)
     fig, axs_plot = plt.subplots(1, 1)
     for i in range(len(folders)):
-        folder_name = 'saved_runs/'+prefix+folders[i]
+        folder_name = 'saved_runs/'+prefix+'/'+folders[i]
         num_runs = len(os.listdir(folder_name))
-        mean, std, eval_freq = average_over_several_runs(folder_name)
+        mean, std, eval_freq = average_over_several_runs(folder_name, prefix)
         # plot variance
         axs_plot.fill_between(eval_freq/1000*np.arange(len(mean)),
                     mean - std/math.sqrt(num_runs),
@@ -52,27 +96,34 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
         plt.savefig('saved_figs/'+title)
 
 
-prefix = 'pong/'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat', 'rainbow_simhash_repeat_c03']
-# label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='pong_simhash')
+prefix = 'pong'
+folders_1 = ['rainbow', 'rainbow_simhash_repeat_c1', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c01']
+plot_several_folders(prefix, folders_1, title='pong_rainbow_simhash')
 
-prefix = 'alien/'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c03']
-# label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='alien_simhash')
+prefix = 'pong'
+folders_1 = ['spr', 'spr_simhash_repeat_c1', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
+plot_several_folders(prefix, folders_1, title='pong_spr_simhash')
 
-prefix = 'battlezone/'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c03']
-# label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='battlezone_simhash')
+prefix = 'alien'
+folders_1 = ['rainbow', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c01']
+plot_several_folders(prefix, folders_1, title='alien_rainbow_simhash')
 
-prefix = 'pong/'
-folders_1 = ['rainbow', 'rainbow_epsilon_end']
-# label_list = ['drqv2', 'ours']
+prefix = 'alien'
+folders_1 = ['spr', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
+plot_several_folders(prefix, folders_1, title='alien_spr_simhash')
+
+prefix = 'battle_zone'
+folders_1 = ['spr', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
+plot_several_folders(prefix, folders_1, title='battlezone_spr_simhash')
+
+prefix = 'pong'
+folders_1 = ['spr_epsilon', 'spr_epsilon_simhash_repeat_c05', 'spr_epsilon_simhash_repeat_c01',
+             'spr_epsilon_repeat_type_2_simhash_repeat_c1',
+             'spr_epsilon_repeat_type_2_simhash_repeat_c05',
+             'spr_epsilon_repeat_type_2_simhash_repeat_c01']
 plot_several_folders(prefix, folders_1, title='pong_epsilon')
 
-prefix = 'alien/'
-folders_1 = ['rainbow', 'rainbow_epsilon_end']
-# label_list = ['drqv2', 'ours']
-plot_several_folders(prefix, folders_1, title='alien_epsilon')
+# prefix = 'alien'
+# folders_1 = ['rainbow', 'rainbow_epsilon_end']
+# # label_list = ['drqv2', 'ours']
+# plot_several_folders(prefix, folders_1, title='alien_epsilon')

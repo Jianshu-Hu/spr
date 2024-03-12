@@ -289,7 +289,7 @@ class SPRCatDqnModel(torch.nn.Module):
         # action repeat
         self.repeat_type = repeat_type
         self.repeat_coefficient = repeat_coefficient
-        if self.repeat_type == 1:
+        if self.repeat_type == 1 or self.repeat_type == 2:
             # use SimHash for pseudo-count
             self.hash_count = HashingBonusEvaluator(repeat_coefficient,
                                                     dim_key=128, obs_processed_flat_dim=self.hidden_size*self.pixels)

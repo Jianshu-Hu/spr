@@ -96,6 +96,9 @@ class SPRActionSelection(torch.nn.Module):
 
         self.repeat_type = repeat_type
         self.repeat_prob_record = []
+        self.last_is_exploration = False
+        self.last_is_repeat = False
+        self.repeat_steps = 0
         self.log_dir = log_dir
 
     def to_device(self, idx):
@@ -108,7 +111,7 @@ class SPRActionSelection(torch.nn.Module):
         obs = obs.to(self.device).float() / 255.
 
         value = self.network.select_action(obs)
-        action = self.select_action(value)
+        action, mask = self.select_action(value)
         # Stupid, stupid hack because rlpyt does _not_ handle batch_b=1 well.
         if self.first_call:
             action = action.squeeze()
@@ -123,6 +126,29 @@ class SPRActionSelection(torch.nn.Module):
                     action = prev_action
             if len(self.repeat_prob_record) % 1000 == 0:
                 np.savez(self.log_dir+'/repeat_prob.npz', repeat_prob=np.array(self.repeat_prob_record))
+        if mode == 'sample' and self.repeat_type == 2 and self.epsilon < 1:
+            # repeat when exploration and for unvisited state
+            if self.last_is_exploration:
+                with torch.no_grad():
+                    feature = self.network.forward_feature(obs)
+                    repeat_prob = self.network.hash_count.predict(feature.cpu().numpy())
+                    self.repeat_prob_record.append(repeat_prob)
+                    if np.random.uniform() < repeat_prob:
+                        self.last_is_repeat = True
+                        action = prev_action
+                    else:
+                        self.last_is_repeat = False
+            self.last_is_exploration = (mask or self.last_is_repeat)
+            if len(self.repeat_prob_record) % 1000 == 0:
+                np.savez(self.log_dir+'/repeat_prob.npz', repeat_prob=np.array(self.repeat_prob_record))
+        if mode == 'sample' and self.repeat_type == 3 and self.epsilon < 1:
+            # repeat according to a zeta distribution
+            if self.repeat_steps > 0:
+                action = prev_action
+                self.repeat_steps = self.repeat_steps-1
+            if self.repeat_steps == 0 and mask:
+                self.repeat_steps = np.random.zipf(a=2)-1
+
         return action, value.squeeze()
 
     def select_action(self, value):
@@ -132,4 +158,4 @@ class SPRActionSelection(torch.nn.Module):
         mask = torch.rand(arg_select.shape, device=value.device) < self.epsilon
         arg_rand = torch.randint(low=0, high=value.shape[-1], size=(mask.sum(),), device=value.device)
         arg_select[mask] = arg_rand
-        return arg_select
+        return arg_select, mask
