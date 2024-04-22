@@ -56,7 +56,8 @@ def average_over_several_runs(folder, game):
         data = np.loadtxt(folder+'/'+runs[i]+'/files/score.csv', delimiter=',', skiprows=1)
         # evaluation_freq = data[2, -3]-data[1, -3]
         evaluation_freq = data[2, 0]-data[1, 0]
-        data_all.append(data[:, 1]*(atari_human_scores[game]-atari_random_scores[game])+atari_random_scores[game])
+        # data_all.append(data[:, 1]*(atari_human_scores[game]-atari_random_scores[game])+atari_random_scores[game])
+        data_all.append(data[:, -1])
         if data.shape[0] < min_length:
             min_length = data.shape[0]
     average = np.zeros([len(runs), min_length])
@@ -96,34 +97,44 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
         plt.savefig('saved_figs/'+title)
 
 
-prefix = 'pong'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat_c1', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c01']
-plot_several_folders(prefix, folders_1, title='pong_rainbow_simhash')
-
-prefix = 'pong'
-folders_1 = ['spr', 'spr_simhash_repeat_c1', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
-plot_several_folders(prefix, folders_1, title='pong_spr_simhash')
-
+# 4.25
 prefix = 'alien'
-folders_1 = ['rainbow', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c01']
-plot_several_folders(prefix, folders_1, title='alien_rainbow_simhash')
+folders_1 = ['spr_frame_skip_2', 'spr_frame_skip_2_simhash_repeat_c1', 'spr_frame_skip_2_simhash_repeat_c05']
+plot_several_folders(prefix, folders_1, title='alien_frame_skip_2')
 
-prefix = 'alien'
-folders_1 = ['spr', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
-plot_several_folders(prefix, folders_1, title='alien_spr_simhash')
+prefix = 'roadrunner'
+folders_1 = ['spr_frame_skip_2', 'spr_frame_skip_2_simhash_repeat_c1', 'spr_frame_skip_2_simhash_repeat_c05']
+plot_several_folders(prefix, folders_1, title='roadrunner_frame_skip_2')
 
-prefix = 'battle_zone'
-folders_1 = ['spr', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
-plot_several_folders(prefix, folders_1, title='battlezone_spr_simhash')
-
-prefix = 'pong'
-folders_1 = ['spr_epsilon', 'spr_epsilon_simhash_repeat_c05', 'spr_epsilon_simhash_repeat_c01',
-             'spr_epsilon_repeat_type_2_simhash_repeat_c1',
-             'spr_epsilon_repeat_type_2_simhash_repeat_c05',
-             'spr_epsilon_repeat_type_2_simhash_repeat_c01']
-plot_several_folders(prefix, folders_1, title='pong_epsilon')
-
+# 3.14
+# prefix = 'pong'
+# folders_1 = ['rainbow', 'rainbow_simhash_repeat_c1', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c01']
+# plot_several_folders(prefix, folders_1, title='pong_rainbow_simhash')
+#
+# prefix = 'pong'
+# folders_1 = ['spr', 'spr_simhash_repeat_c1', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
+# plot_several_folders(prefix, folders_1, title='pong_spr_simhash')
+#
 # prefix = 'alien'
-# folders_1 = ['rainbow', 'rainbow_epsilon_end']
-# # label_list = ['drqv2', 'ours']
-# plot_several_folders(prefix, folders_1, title='alien_epsilon')
+# folders_1 = ['rainbow', 'rainbow_simhash_repeat_c05', 'rainbow_simhash_repeat_c01']
+# plot_several_folders(prefix, folders_1, title='alien_rainbow_simhash')
+#
+# prefix = 'alien'
+# folders_1 = ['spr', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
+# plot_several_folders(prefix, folders_1, title='alien_spr_simhash')
+#
+# prefix = 'battle_zone'
+# folders_1 = ['spr', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
+# plot_several_folders(prefix, folders_1, title='battlezone_spr_simhash')
+#
+# prefix = 'pong'
+# folders_1 = ['spr_epsilon', 'spr_epsilon_simhash_repeat_c05', 'spr_epsilon_simhash_repeat_c01',
+#              'spr_epsilon_repeat_type_2_simhash_repeat_c1',
+#              'spr_epsilon_repeat_type_2_simhash_repeat_c05',
+#              'spr_epsilon_repeat_type_2_simhash_repeat_c01',
+#              'spr_epsilon_zeta_2']
+# plot_several_folders(prefix, folders_1, title='pong_epsilon')
+#
+# prefix = 'breakout'
+# folders_1 = ['spr', 'spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
+# plot_several_folders(prefix, folders_1, title='breakout_spr_simhash')

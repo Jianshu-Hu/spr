@@ -158,36 +158,53 @@ class MinibatchRlEvalWandb(MinibatchRlEval):
                     self.wandb_info[k + "Median"] = np.median(values)
                     if k == 'GameScore':
                         game = self.sampler.env_kwargs['game']
-                        random_score = atari_random_scores[game]
-                        der_score = atari_der_scores[game]
-                        nature_score = atari_nature_scores[game]
-                        human_score = atari_human_scores[game]
-                        normalized_score = (np.average(values) - random_score) / (human_score - random_score)
-                        der_normalized_score = (np.average(values) - random_score) / (der_score - random_score)
-                        nature_normalized_score = (np.average(values) - random_score) / (nature_score - random_score)
-                        self.wandb_info[k + "Normalized"] = normalized_score
-                        self.wandb_info[k + "DERNormalized"] = der_normalized_score
-                        self.wandb_info[k + "NatureNormalized"] = nature_normalized_score
+                        if game in {'adventure'}:
+                            score = np.average(values)
+                            maybe_update_summary(k + "Best", np.average(values))
 
-                        maybe_update_summary(k+"Best", np.average(values))
-                        maybe_update_summary(k+"NormalizedBest", normalized_score)
-                        maybe_update_summary(k+"DERNormalizedBest", der_normalized_score)
-                        maybe_update_summary(k+"NatureNormalizedBest", nature_normalized_score)
-
-                        # save normalized score
-                        if self.index == 0:
-                            self.score = np.array([self.index*self.log_interval_steps,  normalized_score,
-                                                   der_normalized_score, nature_normalized_score,
-                                                   np.average(values)]).reshape(1, 5)
+                            # save normalized score
+                            if self.index == 0:
+                                self.score = np.array([self.index * self.log_interval_steps,
+                                                       np.average(values)]).reshape(1, 2)
+                            else:
+                                new_score = np.array([self.index * self.log_interval_steps,
+                                                      np.average(values)]).reshape(1, 2)
+                                self.score = np.vstack((self.score, new_score))
+                            self.index += 1
+                            header = "iter, score"
+                            np.savetxt(wandb.run.dir + "/score.csv", self.score, delimiter=",", header=header)
                         else:
-                            new_score = np.array([self.index*self.log_interval_steps, normalized_score,
-                                                  der_normalized_score, nature_normalized_score,
-                                                  np.average(values)]).reshape(1, 5)
-                            self.score = np.vstack((self.score, new_score))
-                        self.index += 1
-                        header = "iter, human_normalized_score, der_normalized_score, nature_normalized_score"
-                        # print(wandb.run.dir)
-                        np.savetxt(wandb.run.dir+"/score.csv", self.score, delimiter=",", header=header)
+                            random_score = atari_random_scores[game]
+                            der_score = atari_der_scores[game]
+                            nature_score = atari_nature_scores[game]
+                            human_score = atari_human_scores[game]
+                            normalized_score = (np.average(values) - random_score) / (human_score - random_score)
+                            der_normalized_score = (np.average(values) - random_score) / (der_score - random_score)
+                            nature_normalized_score = (np.average(values) - random_score) / (nature_score - random_score)
+                            self.wandb_info[k + "Normalized"] = normalized_score
+                            self.wandb_info[k + "DERNormalized"] = der_normalized_score
+                            self.wandb_info[k + "NatureNormalized"] = nature_normalized_score
+
+                            maybe_update_summary(k+"Best", np.average(values))
+                            maybe_update_summary(k+"NormalizedBest", normalized_score)
+                            maybe_update_summary(k+"DERNormalizedBest", der_normalized_score)
+                            maybe_update_summary(k+"NatureNormalizedBest", nature_normalized_score)
+
+                            # save normalized score
+                            if self.index == 0:
+                                self.score = np.array([self.index*self.log_interval_steps,  normalized_score,
+                                                       der_normalized_score, nature_normalized_score,
+                                                       np.average(values)]).reshape(1, 5)
+                            else:
+                                new_score = np.array([self.index*self.log_interval_steps, normalized_score,
+                                                      der_normalized_score, nature_normalized_score,
+                                                      np.average(values)]).reshape(1, 5)
+                                self.score = np.vstack((self.score, new_score))
+                            self.index += 1
+                            header = "iter, human_normalized_score, der_normalized_score, nature_normalized_score," \
+                                     " score"
+                            # print(wandb.run.dir)
+                            np.savetxt(wandb.run.dir+"/score.csv", self.score, delimiter=",", header=header)
 
         if self._opt_infos:
             for k, v in self._opt_infos.items():

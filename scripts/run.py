@@ -7,6 +7,8 @@ should improve the efficiency of the forward/backward passes during training.
 (But both settings may impact hyperparameter selection and learning.)
 
 """
+import os
+
 from rlpyt.experiments.configs.atari.dqn.atari_dqn import configs
 from rlpyt.samplers.serial.sampler import SerialSampler
 from rlpyt.envs.atari.atari_env import AtariTrajInfo
@@ -141,7 +143,8 @@ if __name__ == "__main__":
     parser.add_argument('--repeat_coefficient', type=float, default=1.0,
                         help='the coefficient for calculating the probability for action repeat')
     args = parser.parse_args()
-
+    
+    os.environ['WANDB_MODE'] = 'offline'
     if args.public:
         wandb.init(anonymous="allow", config=args, tags=[args.tag] if args.tag else None, dir=args.wandb_dir)
     else:
