@@ -52,3 +52,7 @@ plot_repeat_prob(game, folders, title='alien_spr')
 game = 'battle_zone'
 folders = ['spr_simhash_repeat_c05', 'spr_simhash_repeat_c01']
 plot_repeat_prob(game, folders, title='battle_zone_spr')
+
+game = 'alien'
+folders = ['spr_frame_skip_2_simhash_repeat_c1', 'spr_frame_skip_2_simhash_repeat_c05']
+plot_repeat_prob(game, folders, title='alien_spr_frame_skip_2')

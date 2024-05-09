@@ -70,12 +70,15 @@ def average_over_several_runs(folder, game):
 
 
 def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', title=""):
-    plt.rcParams["figure.figsize"] = (5, 4)
+    # plt.rcParams["figure.figsize"] = (5, 4)
+    plt.rcParams["figure.figsize"] = (10, 8)
     fig, axs_plot = plt.subplots(1, 1)
+    print(title)
     for i in range(len(folders)):
         folder_name = 'saved_runs/'+prefix+'/'+folders[i]
         num_runs = len(os.listdir(folder_name))
         mean, std, eval_freq = average_over_several_runs(folder_name, prefix)
+        print(folders[i]+': '+str(mean[-1]))
         # plot variance
         axs_plot.fill_between(eval_freq/1000*np.arange(len(mean)),
                     mean - std/math.sqrt(num_runs),
@@ -97,14 +100,66 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
         plt.savefig('saved_figs/'+title)
 
 
-# 4.25
-prefix = 'alien'
-folders_1 = ['spr_frame_skip_2', 'spr_frame_skip_2_simhash_repeat_c1', 'spr_frame_skip_2_simhash_repeat_c05']
-plot_several_folders(prefix, folders_1, title='alien_frame_skip_2')
+# 5.2
+prefix = 'amidar'
+folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+plot_several_folders(prefix, folders_1, title=prefix+'_spr')
 
-prefix = 'roadrunner'
-folders_1 = ['spr_frame_skip_2', 'spr_frame_skip_2_simhash_repeat_c1', 'spr_frame_skip_2_simhash_repeat_c05']
-plot_several_folders(prefix, folders_1, title='roadrunner_frame_skip_2')
+prefix = 'ms_pacman'
+folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+
+prefix = 'pong'
+folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+
+prefix = 'bank_heist'
+folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+
+prefix = 'demon_attack'
+folders_1 = ['spr_auto_et', 'spr_auto_shift_et',
+             'spr_auto_shift_et_normalize_moving_avg_c_sqrt2',
+             'spr_auto_shift_et_normalize_moving_avg_c_sqrt2_2',
+             'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2',
+             'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+             'spr_auto_shift_et_default_para_normalize_running_max_c_sqrt2_2',
+             'spr_auto_shift_et_default_para_normalize_running_max_c_01',
+             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
+
+# prefix = 'kangaroo'
+# folders_1 = ['spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+#              'spr_auto_shift_et_default_para_normalize_running_max_c_01',
+#              'spr_auto_et_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+#              'spr_auto_et_shift_et_default_para_normalize_running_max_c_01']
+# plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
+
+prefix = 'kangaroo'
+folders_1 = ['et_21_32_1', 'et_17_48_1.2', 'shift_et_21_32_1', 'shift_et_17_48_1.2']
+plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+
+prefix = 'kangaroo'
+folders_1 = ['spr_auto_shift_et_normalize_running_max_c_1',
+             'spr_auto_shift_et_normalize_running_max_c_05',
+             'spr_auto_shift_et_normalize_running_max_c_01',
+             'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+             'spr_auto_shift_et_default_para_normalize_running_max_c_1',
+             'spr_auto_shift_et_default_para_normalize_running_max_c_05',
+             'spr_auto_shift_et_default_para_normalize_running_max_c_01',
+             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_1',
+             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_05',
+             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
+
+# 4.25
+# prefix = 'alien'
+# folders_1 = ['spr_frame_skip_2', 'spr_frame_skip_2_simhash_repeat_c1', 'spr_frame_skip_2_simhash_repeat_c05']
+# plot_several_folders(prefix, folders_1, title='alien_frame_skip_2')
+#
+# prefix = 'roadrunner'
+# folders_1 = ['spr_frame_skip_2', 'spr_frame_skip_2_simhash_repeat_c1', 'spr_frame_skip_2_simhash_repeat_c05']
+# plot_several_folders(prefix, folders_1, title='roadrunner_frame_skip_2')
 
 # 3.14
 # prefix = 'pong'

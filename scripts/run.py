@@ -111,8 +111,10 @@ if __name__ == "__main__":
     parser.add_argument('--noisy-nets-std', type=float, default=0.5)
     parser.add_argument('--classifier', type=str, default='q_l1', choices=["mlp", "bilinear", "q_l1", "q_l2", "none"], help='Style of NCE classifier')
     parser.add_argument('--final-classifier', type=str, default='linear', choices=["mlp", "linear", "none"], help='Style of NCE classifier')
+    # parser.add_argument('--augmentation', type=str, default=["shift", "intensity"], nargs="+",
+    #                     choices=["none", "rrc", "affine", "crop", "blur", "shift", "intensity"],
+    #                     help='Style of augmentation')
     parser.add_argument('--augmentation', type=str, default=["shift", "intensity"], nargs="+",
-                        choices=["none", "rrc", "affine", "crop", "blur", "shift", "intensity"],
                         help='Style of augmentation')
     parser.add_argument('--q-l1-type', type=str, default=["value", "advantage"], nargs="+",
                         choices=["noisy", "value", "advantage", "relu"],

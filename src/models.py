@@ -1,3 +1,5 @@
+import random
+
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
@@ -9,10 +11,12 @@ import numpy as np
 from kornia.augmentation import RandomAffine,\
     RandomCrop,\
     CenterCrop, \
-    RandomResizedCrop
+    RandomResizedCrop, \
+    RandomElasticTransform
 from kornia.filters import GaussianBlur2d
 import copy
 import wandb
+from collections import deque
 
 
 class SPRCatDqnModel(torch.nn.Module):
@@ -103,12 +107,80 @@ class SPRCatDqnModel(torch.nn.Module):
             elif aug == "intensity":
                 transformation = Intensity(scale=0.05)
                 eval_transformation = nn.Identity()
+            elif aug.startswith('et_'):
+                params = aug.split('_')
+                kernel = int(params[1])
+                sigma = float(params[2])
+                alpha = float(params[3])
+                transformation = RandomElasticTransform(kernel_size=(kernel, kernel),
+                                                        sigma=(sigma, sigma),
+                                                        alpha=(alpha, alpha),
+                                                        p=1.0,
+                                                        same_on_batch=False, keepdim=True)
+                eval_transformation = nn.Identity()
+            elif aug.startswith('shift_et_'):
+                params = aug.split('_')
+                kernel = int(params[2])
+                sigma = float(params[3])
+                alpha = float(params[4])
+                transformation = nn.Sequential(nn.ReplicationPad2d(4), RandomCrop((84, 84)),
+                                               RandomElasticTransform(kernel_size=(kernel, kernel),
+                                                                      sigma=(sigma, sigma),
+                                                                      alpha=(alpha, alpha),
+                                                                      p=1.0,
+                                                                      same_on_batch=False, keepdim=True)
+                                               )
+                eval_transformation = nn.Identity()
+            elif aug.startswith('auto_et'):
+                # params = aug.split('_')
+                # kernel = int(params[1])
+                # sigma = float(params[2])
+                # alpha = float(params[3])
+                transformation = [RandomElasticTransform(kernel_size=(7+10*ker, 7+10*ker),
+                                                        sigma=(48, 48),
+                                                        alpha=(1.2, 1.2),
+                                                        p=1,
+                                                        same_on_batch=False, keepdim=True) for ker in range(1, 5)]
+                eval_transformation = nn.Identity()
+            elif aug.startswith('auto_shift_et'):
+                params = aug.split('_')
+                self.c = float(params[-1])
+                # kernel = int(params[1])
+                # sigma = float(params[2])
+                # alpha = float(params[3])
+                transformation = []
+                for ker in range(1, 5):
+                    trans = nn.Sequential(nn.ReplicationPad2d(4), RandomCrop((84, 84)),
+                                          RandomElasticTransform(kernel_size=(15 + 6 * ker, 15 + 6 * ker),
+                                                                 sigma=(32, 32),
+                                                                 alpha=(1, 1),
+                                                                 p=1,
+                                                                 same_on_batch=False, keepdim=True))
+                    # trans = RandomElasticTransform(kernel_size=(7 + 10 * ker, 7 + 10 * ker),
+                    #                                              sigma=(32, 32),
+                    #                                              alpha=(1, 1),
+                    #                                              p=1,
+                    #                                              same_on_batch=False, keepdim=True)
+                    transformation.append(trans)
+                # transformation.append(nn.Sequential(nn.ReplicationPad2d(4), RandomCrop((84, 84))))
+                eval_transformation = nn.Identity()
             elif aug == "none":
                 transformation = eval_transformation = nn.Identity()
             else:
                 raise NotImplementedError()
             self.transforms.append(transformation)
             self.eval_transforms.append(eval_transformation)
+
+        if aug.startswith('auto'):
+            self.auto_aug = True
+            self.past_q = [deque([0], maxlen=10) for _ in range(len(transformation))]
+            self.aug_idx = -1
+            self.aug_t = 0
+            self.aug_counter = [1] * len(transformation)
+            self.running_maximum = -float('inf')
+            self.moving_average = deque([0], maxlen=10)
+        else:
+            self.auto_aug = False
 
         self.dueling = dueling
         f, c = image_shape[:2]
@@ -417,6 +489,9 @@ class SPRCatDqnModel(torch.nn.Module):
                 image = transform(image)
         else:
             for transform, eval_transform in zip(transforms, eval_transforms):
+                if self.auto_aug:
+                    # self.aug_idx = random.randint(0, len(transform)-1)
+                    transform = transform[self.aug_idx]
                 image = maybe_transform(image, transform,
                                         eval_transform, p=self.aug_prob)
         return image
@@ -436,6 +511,37 @@ class SPRCatDqnModel(torch.nn.Module):
         processed_images = processed_images.view(*images.shape[:-3],
                                                  *processed_images.shape[1:])
         return processed_images
+
+    def update_transform(self, reward):
+        if self.auto_aug:
+            # normalize by running max
+            self.running_maximum = max(self.running_maximum, reward)
+            normalized_reward = reward / self.running_maximum if self.running_maximum != 0 else 0
+            # self.moving_average.append(reward)
+            # normalized_reward = reward / np.mean(self.moving_average)
+            # normalized_reward = reward
+            # c = np.sqrt(2)/2
+            # c = 0.1
+            self.aug_t += 1
+            self.past_q[self.aug_idx].append(normalized_reward)
+            self.aug_counter[self.aug_idx] += 1
+            last_aug_idx = self.aug_idx
+            self.aug_idx = np.argmax([np.mean(dq) + self.c * np.sqrt(np.log(self.aug_t) / self.aug_counter[i]) for i, dq in
+                                      enumerate(self.past_q)])
+            if self.aug_t == 1:
+                self.auto_trans_info = np.array([last_aug_idx, reward, self.aug_t, self.aug_idx] +
+                                                [np.mean(dq) for i, dq in enumerate(self.past_q)] +
+                                                [np.mean(dq) + self.c * np.sqrt(np.log(self.aug_t) / self.aug_counter[i])
+                                                 for i, dq in enumerate(self.past_q)]).reshape(1, -1)
+            else:
+                auto_trans_info = np.array([last_aug_idx, reward, self.aug_t, self.aug_idx] +
+                                           [np.mean(dq) for i, dq in enumerate(self.past_q)]+
+                                            [np.mean(dq) + self.c * np.sqrt(np.log(self.aug_t) / self.aug_counter[i])
+                                                 for i, dq in enumerate(self.past_q)]).reshape(1, -1)
+                self.auto_trans_info = np.vstack((self.auto_trans_info, auto_trans_info))
+            header = "last_aug_idx, reward, aug_t, aug_index, q, q+c"
+            # print(wandb.run.dir)
+            np.savetxt(wandb.run.dir + "/auto_aug_info.csv", self.auto_trans_info, delimiter=",", header=header)
 
     def stem_parameters(self):
         return list(self.conv.parameters()) + list(self.head.parameters())
