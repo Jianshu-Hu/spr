@@ -99,58 +99,94 @@ def plot_several_folders(prefix, folders, label_list=[], plot_or_save='save', ti
     else:
         plt.savefig('saved_figs/'+title)
 
+# 5.22
+prefix = 'alien'
+folders_1 = ['max_q_et_kernel_25_4', 'max_q_shift_or_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
 
-# 5.2
 prefix = 'amidar'
-folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
-plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+folders_1 = ['max_q_et_kernel_25_4', 'max_q_shift_or_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
 
-prefix = 'ms_pacman'
-folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
-plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+prefix = 'assault'
+folders_1 = ['max_q_et_kernel_25_4', 'max_q_shift_or_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
 
-prefix = 'pong'
-folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
-plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+prefix = 'asterix'
+folders_1 = ['max_q_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
 
 prefix = 'bank_heist'
-folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
-plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+folders_1 = ['max_q_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
 
-prefix = 'demon_attack'
-folders_1 = ['spr_auto_et', 'spr_auto_shift_et',
-             'spr_auto_shift_et_normalize_moving_avg_c_sqrt2',
-             'spr_auto_shift_et_normalize_moving_avg_c_sqrt2_2',
-             'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2',
-             'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
-             'spr_auto_shift_et_default_para_normalize_running_max_c_sqrt2_2',
-             'spr_auto_shift_et_default_para_normalize_running_max_c_01',
-             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
-plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
+prefix = 'battle_zone'
+folders_1 = ['max_q_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
 
-# prefix = 'kangaroo'
-# folders_1 = ['spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+prefix = 'boxing'
+folders_1 = ['max_q_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
+
+prefix = 'ms_pacman'
+folders_1 = ['max_q_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
+
+prefix = 'kangaroo'
+folders_1 = ['max_q_et_kernel_25_4', 'max_q_shift_et_kernel_25_4', 'max_q_shift_or_et_kernel_25_4']
+plot_several_folders(prefix, folders_1, title=prefix+'_max_q')
+
+# 5.2
+# prefix = 'amidar'
+# folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+# plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+#
+# prefix = 'ms_pacman'
+# folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+# plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+#
+# prefix = 'pong'
+# folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+# plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+#
+# prefix = 'bank_heist'
+# folders_1 = ['spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+# plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+#
+# prefix = 'demon_attack'
+# folders_1 = ['spr_auto_et', 'spr_auto_shift_et',
+#              'spr_auto_shift_et_normalize_moving_avg_c_sqrt2',
+#              'spr_auto_shift_et_normalize_moving_avg_c_sqrt2_2',
+#              'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2',
+#              'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+#              'spr_auto_shift_et_default_para_normalize_running_max_c_sqrt2_2',
 #              'spr_auto_shift_et_default_para_normalize_running_max_c_01',
-#              'spr_auto_et_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
-#              'spr_auto_et_shift_et_default_para_normalize_running_max_c_01']
+#              'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
 # plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
-
-prefix = 'kangaroo'
-folders_1 = ['et_21_32_1', 'et_17_48_1.2', 'shift_et_21_32_1', 'shift_et_17_48_1.2']
-plot_several_folders(prefix, folders_1, title=prefix+'_spr')
-
-prefix = 'kangaroo'
-folders_1 = ['spr_auto_shift_et_normalize_running_max_c_1',
-             'spr_auto_shift_et_normalize_running_max_c_05',
-             'spr_auto_shift_et_normalize_running_max_c_01',
-             'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
-             'spr_auto_shift_et_default_para_normalize_running_max_c_1',
-             'spr_auto_shift_et_default_para_normalize_running_max_c_05',
-             'spr_auto_shift_et_default_para_normalize_running_max_c_01',
-             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_1',
-             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_05',
-             'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
-plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
+#
+# # prefix = 'kangaroo'
+# # folders_1 = ['spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+# #              'spr_auto_shift_et_default_para_normalize_running_max_c_01',
+# #              'spr_auto_et_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+# #              'spr_auto_et_shift_et_default_para_normalize_running_max_c_01']
+# # plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
+#
+# prefix = 'kangaroo'
+# folders_1 = ['et_21_32_1', 'et_17_48_1.2', 'shift_et_21_32_1', 'shift_et_17_48_1.2']
+# plot_several_folders(prefix, folders_1, title=prefix+'_spr')
+#
+# prefix = 'kangaroo'
+# folders_1 = ['spr_auto_shift_et_normalize_running_max_c_1',
+#              'spr_auto_shift_et_normalize_running_max_c_05',
+#              'spr_auto_shift_et_normalize_running_max_c_01',
+#              'spr_auto_shift_et_default_para_normalize_moving_avg_c_sqrt2_2',
+#              'spr_auto_shift_et_default_para_normalize_running_max_c_1',
+#              'spr_auto_shift_et_default_para_normalize_running_max_c_05',
+#              'spr_auto_shift_et_default_para_normalize_running_max_c_01',
+#              'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_1',
+#              'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_05',
+#              'spr_auto_shift_et_default_para_ker_21_6_normalize_running_max_c_01']
+# plot_several_folders(prefix, folders_1, title=prefix+'_spr_auto')
 
 # 4.25
 # prefix = 'alien'

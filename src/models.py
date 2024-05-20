@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 from rlpyt.models.utils import scale_grad, update_state_dict
-from rlpyt.utils.tensor import infer_leading_dims, restore_leading_dims
+from rlpyt.utils.tensor import infer_leading_dims, restore_leading_dims, select_at_indexes
 from src.utils import count_parameters, dummy_context_mgr
 import numpy as np
 from kornia.augmentation import RandomAffine,\
@@ -164,6 +164,12 @@ class SPRCatDqnModel(torch.nn.Module):
                     transformation.append(trans)
                 # transformation.append(nn.Sequential(nn.ReplicationPad2d(4), RandomCrop((84, 84))))
                 eval_transformation = nn.Identity()
+            elif aug.startswith('update_et'):
+                transformation = [[25, 29, 33, 37], [32, 40, 48, 56], [0.8, 0.9, 1.0, 1.1]]
+                eval_transformation = nn.Identity()
+            elif aug.startswith('update_shift_et'):
+                transformation = [[25, 29, 33, 37], [32, 40, 48, 56], [0.8, 0.9, 1.0, 1.1]]
+                eval_transformation = nn.Identity()
             elif aug == "none":
                 transformation = eval_transformation = nn.Identity()
             else:
@@ -173,14 +179,38 @@ class SPRCatDqnModel(torch.nn.Module):
 
         if aug.startswith('auto'):
             self.auto_aug = True
+            self.update_aug = False
             self.past_q = [deque([0], maxlen=10) for _ in range(len(transformation))]
             self.aug_idx = -1
             self.aug_t = 0
             self.aug_counter = [1] * len(transformation)
             self.running_maximum = -float('inf')
             self.moving_average = deque([0], maxlen=10)
+        elif aug.startswith('update_et'):
+            self.auto_aug = False
+            self.update_aug = True
+            self.shift = False
+            self.print_freq = 1000
+            self.print_count = 0
+            self.aug_para_prob = torch.ones(len(transformation), len(transformation[0]))
+            self.aug_para_prob.requires_grad = True
+            self.aug_para_prob_optim = torch.optim.Adam([self.aug_para_prob], lr=0.001)
+            # self.aug_para_prob = nn.Parameter(
+            #     torch.ones(len(transformation), len(transformation[0])))
+        elif aug.startswith('update_shift_et'):
+            self.auto_aug = False
+            self.update_aug = True
+            self.shift = True
+            self.print_freq = 1000
+            self.print_count = 0
+            self.aug_para_prob = torch.ones(len(transformation)+1, len(transformation[0]))
+            self.aug_para_prob.requires_grad = True
+            self.aug_para_prob_optim = torch.optim.Adam([self.aug_para_prob], lr=0.001)
+            # self.aug_para_prob = nn.Parameter(
+            #     torch.ones(len(transformation), len(transformation[0])))
         else:
             self.auto_aug = False
+            self.update_aug = False
 
         self.dueling = dueling
         f, c = image_shape[:2]
@@ -483,7 +513,7 @@ class SPRCatDqnModel(torch.nn.Module):
                                       self.momentum_tau)
         return spr_loss
 
-    def apply_transforms(self, transforms, eval_transforms, image):
+    def apply_transforms(self, transforms, eval_transforms, image, aug_para=None):
         if eval_transforms is None:
             for transform in transforms:
                 image = transform(image)
@@ -492,25 +522,97 @@ class SPRCatDqnModel(torch.nn.Module):
                 if self.auto_aug:
                     # self.aug_idx = random.randint(0, len(transform)-1)
                     transform = transform[self.aug_idx]
+                elif self.update_aug:
+                    if aug_para is None:
+                        cat = torch.distributions.categorical.Categorical(
+                            torch.nn.functional.softmax(self.aug_para_prob))
+                        aug_para = cat.sample()
+                    if self.shift:
+                        if aug_para[0] < self.aug_para_prob.size(1)/2:
+                            transform = RandomElasticTransform(
+                                                      kernel_size=(transform[0][aug_para[1]], transform[0][aug_para[1]]),
+                                                      sigma=(transform[1][aug_para[2]], transform[1][aug_para[2]]),
+                                                      alpha=(transform[2][aug_para[3]], transform[2][aug_para[3]]),
+                                                      p=1,
+                                                      same_on_batch=False, keepdim=True)
+                        else:
+                            transform = nn.Sequential(nn.ReplicationPad2d(4), RandomCrop((84, 84)))
+
+                    else:
+                        transform = RandomElasticTransform(
+                                                      kernel_size=(transform[0][aug_para[0]], transform[0][aug_para[0]]),
+                                                      sigma=(transform[1][aug_para[1]], transform[1][aug_para[1]]),
+                                                      alpha=(transform[2][aug_para[2]], transform[2][aug_para[2]]),
+                                                      p=1,
+                                                      same_on_batch=False, keepdim=True)
                 image = maybe_transform(image, transform,
                                         eval_transform, p=self.aug_prob)
         return image
 
     @torch.no_grad()
-    def transform(self, images, augment=False):
+    def transform(self, images, augment=False, aug_para=None):
         images = images.float()/255. if images.dtype == torch.uint8 else images
         flat_images = images.reshape(-1, *images.shape[-3:])
-        if augment:
+        if aug_para is None:
+            if augment:
+                processed_images = self.apply_transforms(self.transforms,
+                                                         self.eval_transforms,
+                                                         flat_images)
+            else:
+                processed_images = self.apply_transforms(self.eval_transforms,
+                                                         None,
+                                                         flat_images)
+        else:
             processed_images = self.apply_transforms(self.transforms,
                                                      self.eval_transforms,
-                                                     flat_images)
-        else:
-            processed_images = self.apply_transforms(self.eval_transforms,
-                                                     None,
-                                                     flat_images)
+                                                     flat_images, aug_para)
         processed_images = processed_images.view(*images.shape[:-3],
                                                  *processed_images.shape[1:])
         return processed_images
+
+    def update_transform_prob(self, samples, distributional, device, z):
+        if self.update_aug:
+            cat = torch.distributions.categorical.Categorical(
+                torch.nn.functional.softmax(self.aug_para_prob))
+            aug_para = cat.sample()
+            if self.shift and aug_para[0] >= self.aug_para_prob.size(1) / 2:
+                log_prob = cat.log_prob(aug_para)[0]
+            else:
+                log_prob = torch.sum(cat.log_prob(aug_para))
+            with torch.no_grad():
+                log_pred_ps_1, pred_rew_1, spr_loss_1 = self.forward(samples.all_observation.to(device),
+                           samples.all_action.to(device),
+                           samples.all_reward.to(device),
+                           train=True, aug_para=aug_para)
+                # log_pred_ps_2, pred_rew_2, spr_loss_2 = self.forward(samples.all_observation.to(device),
+                #                                                samples.all_action.to(device),
+                #                                                samples.all_reward.to(device),
+                #                                                train=True, aug_para=aug_para)
+            if not distributional:
+                # q1 = select_at_indexes(samples.all_action[1], log_pred_ps_1[0])
+                # q2 = select_at_indexes(samples.all_action[1], log_pred_ps_2[0])
+                # loss = log_prob*(0.5 * (q1-q2) ** 2).mean()
+
+                q = torch.max(log_pred_ps_1[0], dim=-1).values
+                loss = log_prob * (-q).mean()
+            else:
+                # p1 = select_at_indexes(samples.all_action[1].squeeze(-1),
+                #                       log_pred_ps_1[0])  # [B,P]
+                # p2 = select_at_indexes(samples.all_action[1].squeeze(-1),
+                #                       log_pred_ps_2[0])  # [B,P]
+
+                # loss = log_prob*(-torch.sum(p1 * p2, dim=1)).mean()
+
+                qs = torch.tensordot(log_pred_ps_1[0], z.to(device), dims=1)  # [B,A]
+                q = torch.max(qs, dim=-1).values  # [B]
+                loss = log_prob * (-q).mean()
+            self.aug_para_prob_optim.zero_grad()
+            loss.backward()
+            self.aug_para_prob_optim.step()
+            if self.print_count % self.print_freq == 0:
+                print('prob: ')
+                print(torch.nn.functional.softmax(self.aug_para_prob))
+            self.print_count += 1
 
     def update_transform(self, reward):
         if self.auto_aug:
@@ -578,7 +680,7 @@ class SPRCatDqnModel(torch.nn.Module):
 
     def forward(self, observation,
                 prev_action, prev_reward,
-                train=False, eval=False):
+                train=False, eval=False, aug_para=None):
         """
         For convenience reasons with DistributedDataParallel the forward method
         has been split into two cases, one for training and one for eval.
@@ -588,7 +690,7 @@ class SPRCatDqnModel(torch.nn.Module):
             pred_reward = []
             pred_latents = []
             input_obs = observation[0].flatten(1, 2)
-            input_obs = self.transform(input_obs, augment=True)
+            input_obs = self.transform(input_obs, augment=True, aug_para=aug_para)
             latent = self.stem_forward(input_obs,
                                        prev_action[0],
                                        prev_reward[0])

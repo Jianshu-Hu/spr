@@ -50,6 +50,7 @@ class SPRCategoricalDQN(CategoricalDQN):
         self.time_offset = time_offset
         self.jumps = jumps
 
+        self.distributional = distributional
         if not distributional:
             self.rl_loss = self.dqn_rl_loss
         else:
@@ -163,6 +164,10 @@ class SPRCategoricalDQN(CategoricalDQN):
             else:
                 model_grad_norm = 0
             self.optimizer.step()
+
+            z = torch.linspace(self.V_min, self.V_max, self.agent.n_atoms)
+            self.agent.model.update_transform_prob(samples_from_replay,  self.distributional, self.agent.device, z)
+
             if self.prioritized_replay:
                 self.replay_buffer.update_batch_priorities(td_abs_errors)
             opt_info.loss.append(loss.item())
